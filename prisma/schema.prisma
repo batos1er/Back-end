@@ -25,5 +25,6 @@ model Product {
   desc String?
   img String
   price Float
-  category ProductCategory @relation(fields: [id], references: [id])
+  category ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId Int
 }
