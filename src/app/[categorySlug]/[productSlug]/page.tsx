@@ -11,28 +11,48 @@ import {
 import { NextPageProps } from "../../../types";
 import { PRODUCTS_CATEGORY_DATA } from "tp-kit/data";
 import { Metadata } from "next";
+import { cache } from 'react'
 import {
   ProductAttribute,
   ProductAttributesTable,
 } from "../../../components/product-attributes-table";
 import { AddToCartButton } from "../../../components/add-to-cart-button";
-const product = {
-  ...PRODUCTS_CATEGORY_DATA[0].products[0],
-  category: {
-    ...PRODUCTS_CATEGORY_DATA[0],
-    products: PRODUCTS_CATEGORY_DATA[0].products.slice(1),
-  },
-};
+import prisma from "../../../utils/prisma";
+import { notFound } from "next/navigation";
 
 type Props = {
   categorySlug: string;
   productSlug: string;
 };
 
+export const getProduct = cache((productSlug: string) => prisma.product.findUnique({
+  include: {
+    category : 
+    {include : 
+      {products:
+        {where:
+          {slug:
+            {not:productSlug
+            }
+          }
+        }
+      }
+    },
+  },
+  where : {
+    slug: productSlug,
+  }
+}));
+
 export async function generateMetadata({
   params,
   searchParams,
+
 }: NextPageProps<Props>): Promise<Metadata> {
+  const product = await getProduct(params.productSlug);
+  if (!product){
+    return {}
+  }
   return {
     title: product.name,
     description:
@@ -50,6 +70,10 @@ const productAttributes: ProductAttribute[] = [
 ];
 
 export default async function ProductPage({ params }: NextPageProps<Props>) {
+  const product = await getProduct(params.productSlug);
+  if (!product){
+    return notFound();
+  }
   return (
     <SectionContainer wrapperClassName="max-w-5xl">
       <BreadCrumbs
